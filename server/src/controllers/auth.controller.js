@@ -159,4 +159,17 @@ async function logout(req, res){
   }
 }
 
-module.exports = { register, login, refresh, logout};
+//Lo que hace este endpoint es devolver la informacion del usuario logueado, sin el password ni el refreshTokenHash.
+async function me(req, res) {
+  try {
+    const user = await User.findById(req.user.id).select('-password -refreshTokenHash');
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    return res.json(user);
+  } catch (error) {
+    console.error('Error en me:', error.message);
+    return res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+module.exports = { register, login, refresh, logout, me};
