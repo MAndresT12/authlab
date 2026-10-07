@@ -8,7 +8,7 @@ connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
- 
+const cors = require('cors');
 //Permitir que express lea JSON del body
 //Por qué hace falta: sin esta línea, cuando alguien mande un POST 
 // con un body JSON (como el registro que estamos por construir), 
@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 4000;
 app.use(express.json());
 
 
+app.use(cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
