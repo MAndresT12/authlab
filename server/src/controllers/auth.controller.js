@@ -127,4 +127,36 @@ async function refresh(req, res) {
   }
 }
 
-module.exports = { register, login, refresh };
+async function logout(req, res){
+  try{
+    const {refreshToken} =req.body;
+
+    if(!refreshToken){
+      //Bad request, servidor no puede procesar peticion porque sintaxis es incorrecta o mal formada
+      return res.status(400).json({
+        message: 'Refresh token requerido'
+      });
+    }
+
+    let payload
+    try{
+      payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET)
+
+    }catch(error){
+      //Sin contenido, servidor proceso solicitud con exito pero no necesita enviar ningun dato de respuesta
+      //No es un erroro, pertenece grupo de codigos de exito (2xx)
+      return res.status(204).send();
+    }
+    
+    await User.findByIdAndUpdate(payload.id, { refreshTokenHash: null })
+
+    return res.status(204).send();
+
+  }catch(error){
+    console.error('Error en logout: ', error.message);
+    //Error interno del servidor, se encontro un fallo o una condicion inesperada que impidio completar la solicitud
+    return res.status(500).json({message: 'Error interno del servidor'})
+  }
+}
+
+module.exports = { register, login, refresh, logout};
