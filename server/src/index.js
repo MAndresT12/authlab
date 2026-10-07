@@ -8,7 +8,7 @@ connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-
+ 
 //Permitir que express lea JSON del body
 //Por qué hace falta: sin esta línea, cuando alguien mande un POST 
 // con un body JSON (como el registro que estamos por construir), 
