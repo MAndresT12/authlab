@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const {generateAccessToken, generateRefreshToken, hashToken }= require('../utils/tokens')
+
 
 async function register(req, res) {
   try {
@@ -45,19 +47,37 @@ async function login(req, res) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
-    const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
-    );
+    //ANTES
+    // const accessToken = jwt.sign(
+    //   { id: user._id, role: user.role },
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
+    // );
+
+    // return res.json({
+    //   accessToken,
+    //   user: {
+    //     id: user._id,
+    //     email: user.email,
+    //     role: user.role,
+    //   },
+    //});
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    user.refreshTokenHash = hashToken(refreshToken);
+    await user.save();
 
     return res.json({
       accessToken,
+      refreshToken,
       user: {
         id: user._id,
         email: user.email,
         role: user.role,
       },
+
     });
   } catch (error) {
     console.error('Error en login:', error.message);
@@ -66,4 +86,45 @@ async function login(req, res) {
   }
 }
 
-module.exports = { register, login };
+
+async function refresh(req, res) {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token requerido' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    } catch (error) {
+      return res.status(401).json({ message: 'Refresh token inválido o expirado' });
+    }
+
+    const user = await User.findById(payload.id);
+    if (!user || !user.refreshTokenHash) {
+      return res.status(401).json({ message: 'Refresh token inválido' });
+    }
+
+    const isValid = hashToken(refreshToken) === user.refreshTokenHash;
+    if (!isValid) {
+      return res.status(401).json({ message: 'Refresh token inválido' });
+    }
+
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    user.refreshTokenHash = hashToken(newRefreshToken);
+    await user.save();
+
+    return res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error('Error en refresh:', error.message);
+    return res.status(500).json({ message: 'Error interno del servidor' });
+  }
+}
+
+module.exports = { register, login, refresh };
