@@ -3,6 +3,9 @@ import api from '../lib/api';
 import { setTokens} from '../lib/authStorage';
 import axios from 'axios';
 
+import {useAuth} from '../context/useAuth';
+import {useNavigate} from 'react-router-dom';
+
 type Mode = 'login' | 'register';
 
 function AuthForm() {
@@ -11,6 +14,9 @@ function AuthForm() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
@@ -29,6 +35,9 @@ function AuthForm() {
       if(mode === 'login') {
         setTokens(data.accessToken, data.refreshToken);
         setMessage('¡Sesión iniciada!');
+        //No hace falta pedirle a /auth/me al backend para obtener los datos del usuario logueado, ya que el backend ya nos devolvio los datos del usuario en la respuesta de /auth/login. Por eso podemos setear directamente el user con data.user
+        setUser(data.user);
+        navigate('/dashboard');
       }else{
         setMessage('¡Cuenta creada, ya puedes iniciar sesión!');
       }
