@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import api from '../lib/api';
-import { setTokens} from '../lib/authStorage';
-import axios from 'axios';
+
 
 type Mode = 'login' | 'register';
 
@@ -17,36 +15,33 @@ function AuthForm() {
     setLoading(true);
     setMessage(null);
 
-    // const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-    //Recordemos que en baseURL de la instancia, es /api, por lo que no es necesario ponerlo en el endpoint, ya que axios lo agrega automaticamente. Por eso el endpoint es solo /auth/login o /auth/register
-    const endpoint = mode === 'login' ? '/auth/login' : '/auth/register';
+    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
 
     try {
+      const response = await fetch(`http://localhost:4000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
+      const data = await response.json();
 
-      const {data} = await api.post(endpoint, { email, password });
-
-      if(mode === 'login') {
-        setTokens(data.accessToken, data.refreshToken);
-        setMessage('¡Sesión iniciada!');
-      }else{
-        setMessage('¡Cuenta creada, ya puedes iniciar sesión!');
+      if (!response.ok) {
+        setMessage(data.message || 'Ocurrió un error');
+        return;
       }
 
+      setMessage(
+        mode === 'login' ? '¡Sesión iniciada!' : '¡Cuenta creada, ya puedes iniciar sesión!'
+      );
       //Imprimir resultado en la consola para verificar la respuesta del servidor
       console.log(data);
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            setMessage(
-            error.response?.data?.message || 'Ocurrió un error en la petición'
-            );
-        } else {
-            setMessage('No se pudo conectar con el servidor');
-        }
+    } catch {
+      setMessage('No se pudo conectar con el servidor');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-}
+  }
 
   return (
     <div className="auth-card">
